@@ -1,0 +1,1 @@
+Codec24NetTool.exe decode Hello.c2 Hello_decoded.raw
