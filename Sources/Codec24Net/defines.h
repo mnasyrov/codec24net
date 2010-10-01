@@ -22,8 +22,7 @@
   License for more details.
 
   You should have received a copy of the GNU Lesser General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+  along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef __DEFINES__
@@ -80,5 +79,15 @@ typedef struct {
   float phi[MAX_AMP];	/* phase of each harmonic                     */
   int   voiced;	        /* non-zero if this frame is voiced           */
 } MODEL;
+
+/* describes each codebook  */
+
+struct lsp_codebook {
+    int			k;        /* dimension of vector	*/
+    int			log2m;    /* number of bits in m	*/
+    int			m;        /* elements in codebook	*/
+    const float	*	cb;	  /* The elements		*/
+};
+extern const struct lsp_codebook lsp_cb[];
 
 #endif

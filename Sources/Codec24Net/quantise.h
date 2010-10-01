@@ -20,8 +20,7 @@
   License for more details.
 
   You should have received a copy of the GNU Lesser General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+  along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef __QUANTISE__
@@ -39,7 +38,6 @@ float lpc_model_amplitudes(float Sn[], float w[], MODEL *model, int order,
 			   int lsp,float ak[]);
 void aks_to_M2(float ak[], int order, MODEL *model, float E, float *snr, 
 	       int dump);
-float get_gmin(void);
 
 int   encode_Wo(float Wo);
 float decode_Wo(int index);

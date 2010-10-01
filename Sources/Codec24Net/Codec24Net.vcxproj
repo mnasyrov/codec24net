@@ -50,25 +50,33 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>$(ProjectDir)defines.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>$(OutputPath)GenerateCodebook.exe $(ProjectDir)codebook\lsp1.txt $(ProjectDir)codebook\lsp2.txt $(ProjectDir)codebook\lsp3.txt $(ProjectDir)codebook\lsp4.txt $(ProjectDir)codebook\lsp5.txt $(ProjectDir)codebook\lsp6.txt $(ProjectDir)codebook\lsp7.txt $(ProjectDir)codebook\lsp8.txt $(ProjectDir)codebook\lsp9.txt $(ProjectDir)codebook\lsp10.txt &gt; $(ProjectDir)codebook.cpp</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+	  <ForcedIncludeFiles>$(ProjectDir)defines.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>$(OutputPath)GenerateCodebook.exe $(ProjectDir)codebook\lsp1.txt $(ProjectDir)codebook\lsp2.txt $(ProjectDir)codebook\lsp3.txt $(ProjectDir)codebook\lsp4.txt $(ProjectDir)codebook\lsp5.txt $(ProjectDir)codebook\lsp6.txt $(ProjectDir)codebook\lsp7.txt $(ProjectDir)codebook\lsp8.txt $(ProjectDir)codebook\lsp9.txt $(ProjectDir)codebook\lsp10.txt &gt; $(ProjectDir)codebook.cpp</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -95,6 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
+    <ClCompile Include="codebook.cpp" />
     <ClCompile Include="codec2.cpp" />
     <ClCompile Include="Codec24Net.cpp" />
     <ClCompile Include="dump.cpp" />

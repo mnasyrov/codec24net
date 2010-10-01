@@ -2,8 +2,13 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Codec24Net", "Sources\Codec24Net\Codec24Net.vcxproj", "{8C1B0445-DB81-45D7-9770-0FA58357717E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{86B47B47-69C6-4385-966E-19B42E5663A9} = {86B47B47-69C6-4385-966E-19B42E5663A9}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Codec24NetTool", "Sources\Codec24NetTool\Codec24NetTool.csproj", "{F5CB88B7-F868-413E-B367-A986DFFB1797}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GenerateCodebook", "Sources\GenerateCodebook\GenerateCodebook.vcxproj", "{86B47B47-69C6-4385-966E-19B42E5663A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +40,16 @@ Global
 		{F5CB88B7-F868-413E-B367-A986DFFB1797}.Release|Win32.ActiveCfg = Release|x86
 		{F5CB88B7-F868-413E-B367-A986DFFB1797}.Release|x86.ActiveCfg = Release|x86
 		{F5CB88B7-F868-413E-B367-A986DFFB1797}.Release|x86.Build.0 = Release|x86
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Debug|Win32.ActiveCfg = Debug|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Debug|Win32.Build.0 = Debug|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Debug|x86.ActiveCfg = Debug|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Release|Win32.ActiveCfg = Release|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Release|Win32.Build.0 = Release|Win32
+		{86B47B47-69C6-4385-966E-19B42E5663A9}.Release|x86.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -23,8 +23,7 @@
   License for more details.
 
   You should have received a copy of the GNU Lesser General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+  along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef __CODEC2__
@@ -36,6 +35,7 @@
 void *codec2_create();
 void codec2_destroy(void *codec2_state);
 void codec2_encode(void *codec2_state, unsigned char * bits, short speech_in[]);
-void codec2_decode(void *codec2_state, short speech_out[], const unsigned char * bits);
+void codec2_decode(void *codec2_state, short speech_out[],
+      const unsigned char * bits);
 
 #endif

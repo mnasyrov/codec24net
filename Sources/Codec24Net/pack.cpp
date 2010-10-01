@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 /*
   Copyright (C) 2010 Perens LLC <bruce@perens.com>
 
@@ -83,7 +81,8 @@ unpack(
  unsigned int		fieldWidth/* Width of the field in BITS, not bytes. */
  )
 {
-  unsigned int		field = 0;
+  unsigned int	field = 0;
+  unsigned int	t;
 
   do {
     unsigned int  	bI = *bitIndex;
@@ -98,7 +97,7 @@ unpack(
   } while ( fieldWidth != 0 );
 
   /* Convert from Gray code to binary. Works for maximum 8-bit fields. */
-  unsigned int	t = field ^ (field >> 8);
+  t = field ^ (field >> 8);
   t ^= (t >> 4);
   t ^= (t >> 2);
   t ^= (t >> 1);

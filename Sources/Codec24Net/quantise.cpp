@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 /*---------------------------------------------------------------------------*\
                                                                              
   FILE........: quantise.c
@@ -22,8 +20,8 @@
   License for more details.
 
   You should have received a copy of the GNU Lesser General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+  along with this program; if not, see <http://www.gnu.org/licenses/>.
+
 */
 
 #include <assert.h>
@@ -41,48 +39,6 @@
 #include "four1.h"
 
 #define LSP_DELTA1 0.01         /* grid spacing for LSP root searches */
-#define MAX_CB       20         /* max number of codebooks */
-
-/* describes each codebook  */
-
-typedef struct {
-    int   k;        /* dimension of vector                   */
-    int   log2m;    /* number of bits in m                   */
-    int   m;        /* elements in codebook                  */
-    char *fn;       /* file name of text file storing the VQ */
-} LSP_CB;
-
-/* lsp_q describes entire quantiser made up of several codebooks */
-
-#ifdef OLDER
-/* 10+10+6+6 = 32 bit LSP difference split VQ */
-
-LSP_CB lsp_q[] = {
-    {3,   1024, "../unittest/lspd123.txt"},
-    {3,   1024, "../unittest/lspd456.txt"},
-    {2,     64, "../unittest/lspd78.txt"},
-    {2,     64, "../unittest/lspd910.txt"},
-    {0,    0, ""}
-};
-#endif
-
-LSP_CB lsp_q[] = {
-    {1,4,16, "../unittest/lsp1.txt"},
-    {1,4,16, "../unittest/lsp2.txt"},
-    {1,4,16, "../unittest/lsp3.txt"},
-    {1,4,16, "../unittest/lsp4.txt"},
-    {1,4,16, "../unittest/lsp5.txt"},
-    {1,4,16, "../unittest/lsp6.txt"},
-    {1,4,16, "../unittest/lsp7.txt"},
-    {1,3,8, "../unittest/lsp8.txt"},
-    {1,3,8, "../unittest/lsp9.txt"},
-    {1,2,4, "../unittest/lsp10.txt"},
-    {0,0,0, ""}
-};
-
-/* ptr to each codebook */
-
-static float *plsp_cb[MAX_CB];
 
 /*---------------------------------------------------------------------------*\
 									      
@@ -100,9 +56,10 @@ float speech_to_uq_lsps(float lsp[], float ak[], float Sn[], float w[],
 \*---------------------------------------------------------------------------*/
 
 int lsp_bits(int i) {
-    return lsp_q[i].log2m;
+    return lsp_cb[i].log2m;
 }
 
+#if VECTOR_QUANTISATION
 /*---------------------------------------------------------------------------*\
 									      
   quantise_uniform
@@ -163,61 +120,7 @@ void lsp_quantise(
     for(i=1; i<order; i++)
 	lsp_[i] = lsp_[i-1] + dlsp_[i];
 }
-
-/*---------------------------------------------------------------------------*\
-
-  scan_line()
-
-  This function reads a vector of floats from a line in a text file.
-
-\*---------------------------------------------------------------------------*/
-
-void scan_line(FILE *fp, float f[], int n)
-/*  FILE   *fp;		file ptr to text file 		*/
-/*  float  f[]; 	array of floats to return 	*/
-/*  int    n;		number of floats in line 	*/
-{
-    char   s[MAX_STR];
-    char   *ps,*pe;
-    int	   i;
-
-    fgets(s,MAX_STR,fp);
-    ps = pe = s;
-    for(i=0; i<n; i++) {
-	while( isspace(*pe)) pe++;
-	while( !isspace(*pe)) pe++;
-	sscanf(ps,"%f",&f[i]);
-	ps = pe;
-    }
-}
-
-/*---------------------------------------------------------------------------*\
-
-  load_cb
-
-  Loads a single codebook (LSP vector quantiser) into memory.
-
-\*---------------------------------------------------------------------------*/
-
-void load_cb(char *filename, float *cb, int k, int m)
-{
-    FILE *ftext;
-    int   lines;
-    int   i;
-
-    ftext = fopen(filename,"rt");
-    if (ftext == NULL) {
-	printf("Error opening text file: %s\n",filename);
-	exit(1);
-    }
-
-    lines = 0;
-    for(i=0; i<m; i++) {
-	scan_line(ftext, &cb[k*lines++], k);
-    }
-
-    fclose(ftext);
-}
+#endif
 
 /*---------------------------------------------------------------------------*\
 
@@ -230,18 +133,6 @@ void load_cb(char *filename, float *cb, int k, int m)
 
 void quantise_init()
 {
-    int i,k,m;
-
-    i = 0;
-    while(lsp_q[i].k) {
-	k = lsp_q[i].k;
-       	m = lsp_q[i].m;
-	plsp_cb[i] = (float*)malloc(sizeof(float)*k*m);
-	assert(plsp_cb[i] != NULL);
-	load_cb(lsp_q[i].fn, plsp_cb[i], k, m);
-	i++;
-	assert(i < MAX_CB);
-    }
 }
 
 /*---------------------------------------------------------------------------*\
@@ -254,7 +145,7 @@ void quantise_init()
 
 \*---------------------------------------------------------------------------*/
 
-long quantise(float cb[], float vec[], float w[], int k, int m, float *se)
+long quantise(const float * cb, float vec[], float w[], int k, int m, float *se)
 /* float   cb[][K];	current VQ codebook		*/
 /* float   vec[];	vector to quantise		*/
 /* float   w[];         weighting vector                */
@@ -283,19 +174,6 @@ long quantise(float cb[], float vec[], float w[], int k, int m, float *se)
    *se += beste;
 
    return(besti);
-}
-
-static float gmin=PI;
-
-float get_gmin(void) { return gmin; }
-
-void min_lsp_dist(float lsp[], int order)
-{
-    int   i;
-
-    for(i=1; i<order; i++)
-	if ((lsp[i]-lsp[i-1]) < gmin)
-	    gmin = lsp[i]-lsp[i-1];
 }
 
 void check_lsp_order(float lsp[], int lpc_order)
@@ -354,7 +232,7 @@ float lpc_model_amplitudes(
   int   index;
   float se;
   int   k,m;
-  float *cb;
+  const float * cb;
   float wt[LPC_MAX];
 
   for(i=0; i<M; i++)
@@ -383,9 +261,9 @@ float lpc_model_amplitudes(
     /* simple uniform scalar quantisers */
 
     for(i=0; i<10; i++) {
-	k = lsp_q[i].k;
-	m = lsp_q[i].m;
-	cb = plsp_cb[i];
+	k = lsp_cb[i].k;
+	m = lsp_cb[i].m;
+	cb = lsp_cb[i].cb;
 	index = quantise(cb, &lsp_hz[i], wt, k, m, &se);
 	lsp_hz[i] = cb[index*k];
     }
@@ -425,10 +303,14 @@ float lpc_model_amplitudes(
 	lsp_[j] = lsp[j];
 
     lsp_to_lpc(lsp_, ak, order);
+#ifdef DUMP
     dump_lsp(lsp);
+#endif
   }
 
+#ifdef DUMP
   dump_E(E);
+#endif
   #ifdef SIM_QUANT
   /* simulated LPC energy quantisation */
   {
@@ -487,8 +369,10 @@ void aks_to_M2(
 
   for(i=0; i<FFT_DEC/2; i++)
     Pw[i].real = E/(Pw[i].real*Pw[i].real + Pw[i].imag*Pw[i].imag);
+#ifdef DUMP
   if (dump) 
       dump_Pw(Pw);
+#endif
 
   /* Determine magnitudes by linear interpolation of P(w) -------------------*/
 
@@ -591,7 +475,17 @@ float speech_to_uq_lsps(float lsp[],
 	E += ak[i]*R[i];
  
     roots = lpc_to_lsp(ak, order, lsp, 5, LSP_DELTA1);
-    assert(roots == order);
+    if (roots != order) {
+	/* for some reason LSP roots could not be found   */
+	/* some alpha testers are reporting this condition */
+	fprintf(stderr, "LSP roots not found!\nroots = %d\n", roots);
+	for(i=0; i<=order; i++)
+	    fprintf(stderr, "a[%d] = %f\n", i, ak[i]);	
+	
+	/* some benign LSP values we can use instead */
+	for(i=0; i<order; i++)
+	    lsp[i] = (PI/order)*(float)i;
+    }
 
     return E;
 }
@@ -612,7 +506,8 @@ void encode_lsps(int indexes[], float lsp[], int order)
     int    i,k,m;
     float  wt[1];
     float  lsp_hz[LPC_MAX];
-    float *cb, se;
+    const float * cb;
+    float se;
 
     /* convert from radians to Hz so we can use human readable
        frequencies */
@@ -624,9 +519,9 @@ void encode_lsps(int indexes[], float lsp[], int order)
 
     wt[0] = 1.0;
     for(i=0; i<order; i++) {
-	k = lsp_q[i].k;
-	m = lsp_q[i].m;
-	cb = plsp_cb[i];
+	k = lsp_cb[i].k;
+	m = lsp_cb[i].m;
+	cb = lsp_cb[i].cb;
 	indexes[i] = quantise(cb, &lsp_hz[i], wt, k, m, &se);
     }
 }
@@ -646,11 +541,11 @@ void decode_lsps(float lsp[], int indexes[], int order)
 {
     int    i,k;
     float  lsp_hz[LPC_MAX];
-    float *cb;
+    const float * cb;
 
     for(i=0; i<order; i++) {
-	k = lsp_q[i].k;
-	cb = plsp_cb[i];
+	k = lsp_cb[i].k;
+	cb = lsp_cb[i].cb;
 	lsp_hz[i] = cb[indexes[i]*k];
     }
 
