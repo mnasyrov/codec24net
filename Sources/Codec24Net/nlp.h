@@ -28,6 +28,8 @@
 #ifndef __NLP__
 #define __NLP__
 
+#include "comp.h"
+
 void *nlp_create();
 void nlp_destroy(void *nlp_state);
 float nlp(void *nlp_state, float Sn[], int n, int m, int pmin, int pmax, 

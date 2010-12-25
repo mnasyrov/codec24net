@@ -37,7 +37,9 @@
 
 #include "defines.h"
 #include "sine.h"
-#include "four1.h"
+#include "fft.h"
+
+#define HPF_BETA 0.125
 
 /*---------------------------------------------------------------------------*\
                                                                              
@@ -129,7 +131,7 @@ void make_analysis_window(float w[],COMP W[])
   for(i=FFT_ENC-NW/2,j=M/2-NW/2; i<FFT_ENC; i++,j++)
     W[i].real = w[j];
 
-  four1(&W[-1].imag,FFT_ENC,-1);         /* "Numerical Recipes in C" FFT */
+  fft(&W[0].real,FFT_ENC,-1);         /* "Numerical Recipes in C" FFT */
 
   /* 
       Re-arrange W[] to be symmetrical about FFT_ENC/2.  Makes later 
@@ -168,6 +170,26 @@ void make_analysis_window(float w[],COMP W[])
 
 /*---------------------------------------------------------------------------*\
                                                        
+  FUNCTION....: hpf	     
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 16 Nov 2010
+
+  High pass filter with a -3dB point of about 160Hz.
+
+    y(n) = -HPF_BETA*y(n-1) + x(n) - x(n-1)
+ 
+\*---------------------------------------------------------------------------*/
+
+float hpf(float x, float states[])
+{
+    states[0] += -HPF_BETA*states[0] + x - states[1];
+    states[1] = x;
+
+    return states[0];
+}
+
+/*---------------------------------------------------------------------------*\
+                                                       
   FUNCTION....: dft_speech	     
   AUTHOR......: David Rowe			      
   DATE CREATED: 27/5/94 
@@ -198,7 +220,7 @@ void dft_speech(COMP Sw[], float Sn[], float w[])
   for(i=0; i<NW/2; i++)
     Sw[FFT_ENC-NW/2+i].real = Sn[i+M/2-NW/2]*w[i+M/2-NW/2];
 
-  four1(&Sw[-1].imag,FFT_ENC,-1);
+  fft(&Sw[0].real,FFT_ENC,-1);
 }
 
 /*---------------------------------------------------------------------------*\
@@ -361,38 +383,38 @@ float est_voicing_mbe(
     MODEL *model,
     COMP   Sw[],
     COMP   W[],
-    float  f0,
-    COMP   Sw_[]          /* DFT of all voiced synthesised signal for f0 */
-                          /* useful for debugging/dump file              */
-)
+    COMP   Sw_[],         /* DFT of all voiced synthesised signal  */
+                          /* useful for debugging/dump file        */
+    COMP   Ew[],          /* DFT of error                          */
+    float prev_Wo)
 {
     int   i,l,al,bl,m;    /* loop variables */
     COMP  Am;             /* amplitude sample for this band */
     int   offset;         /* centers Hw[] about current harmonic */
     float den;            /* denominator of Am expression */
-    float error;          /* accumulated error between originl and synthesised */
-    float Wo;             /* current "test" fundamental freq. */
-    int   L;
+    float error;          /* accumulated error between original and synthesised */
+    float Wo;            
     float sig, snr;
+    float elow, ehigh, eratio;
+    float dF0, sixty;
 
     sig = 0.0;
     for(l=1; l<=model->L/4; l++) {
 	sig += model->A[l]*model->A[l];
     }
-
     for(i=0; i<FFT_ENC; i++) {
 	Sw_[i].real = 0.0;
 	Sw_[i].imag = 0.0;
+	Ew[i].real = 0.0;
+	Ew[i].imag = 0.0;
     }
 
-    L = floor((FS/2.0)/f0);
-    Wo = f0*(TWO_PI/FS);
-
+    Wo = model->Wo;
     error = 0.0;
 
     /* Just test across the harmonics in the first 1000 Hz (L/4) */
 
-    for(l=1; l<=L/4; l++) {
+    for(l=1; l<=model->L/4; l++) {
 	Am.real = 0.0;
 	Am.imag = 0.0;
 	den = 0.0;
@@ -417,16 +439,69 @@ float est_voicing_mbe(
 	    offset = FFT_ENC/2 + m - l*Wo*FFT_ENC/TWO_PI + 0.5;
 	    Sw_[m].real = Am.real*W[offset].real - Am.imag*W[offset].imag;
 	    Sw_[m].imag = Am.real*W[offset].imag + Am.imag*W[offset].real;
-	    error += (Sw[m].real - Sw_[m].real)*(Sw[m].real - Sw_[m].real);
-	    error += (Sw[m].imag - Sw_[m].imag)*(Sw[m].imag - Sw_[m].imag);
+	    Ew[m].real = Sw[m].real - Sw_[m].real;
+	    Ew[m].imag = Sw[m].imag - Sw_[m].imag;
+	    error += Ew[m].real*Ew[m].real;
+	    error += Ew[m].imag*Ew[m].imag;
 	}
     }
-
+    
     snr = 10.0*log10(sig/error);
     if (snr > V_THRESH)
 	model->voiced = 1;
     else
 	model->voiced = 0;
+ 
+    /* post processing, helps clean up some voicing errors ------------------*/
+
+    /* 
+       Determine the ratio of low freancy to high frequency energy,
+       voiced speech tends to be dominated by low frequency energy,
+       unvoiced by high frequency. This measure can be used to
+       determine if we have made any gross errors.
+    */
+
+    elow = ehigh = 0.0;
+    for(l=1; l<=model->L/2; l++) {
+	elow += model->A[l]*model->A[l];
+    }
+    for(l=model->L/2; l<=model->L; l++) {
+	ehigh += model->A[l]*model->A[l];
+    }
+    eratio = 10.0*log10(elow/ehigh);
+    dF0 = 0.0;
+
+    /* Look for Type 1 errors, strongly V speech that has been
+       accidentally declared UV */
+
+    if (model->voiced == 0)
+	if (eratio > 10.0)
+	    model->voiced = 1;
+
+    /* Look for Type 2 errors, strongly UV speech that has been
+       accidentally declared V */
+
+    if (model->voiced == 1) {
+	if (eratio < -10.0)
+	    model->voiced = 0;
+
+	/* If pitch is jumping about it's likely this is UV */
+
+	dF0 = (model->Wo - prev_Wo)*FS/TWO_PI;
+	if (fabs(dF0) > 15.0) 
+	    model->voiced = 0;
+
+	/* A common source of Type 2 errors is the pitch estimator
+	   gives a low (50Hz) estimate for UV speech, which gives a
+	   good match with noise due to the close harmoonic spacing.
+	   These errors are much more common than people with 50Hz
+	   pitch, so we have just a small eratio threshold. */
+
+	sixty = 60.0*TWO_PI/FS;
+	if ((eratio < -4.0) && (model->Wo <= sixty))
+	    model->voiced = 0;
+    }
+    //printf(" v: %d snr: %f eratio: %3.2f %f\n",model->voiced,snr,eratio,dF0);
 
     return snr;
 }
@@ -470,16 +545,16 @@ void make_synthesis_window(float Pn[])
   DATE CREATED: 20/2/95		       
 									      
   Synthesise a speech signal in the frequency domain from the
-  sinusodal model parameters.  Uses overlap-add a triangular window to
-  smoothly interpolate betwen frames.
+  sinusodal model parameters.  Uses overlap-add with a trapezoidal
+  window to smoothly interpolate betwen frames.
 									      
 \*---------------------------------------------------------------------------*/
 
 void synthesise(
-  float  Sn_[],		/* time domain synthesised signal         */
-  MODEL *model,		/* ptr to model parameters for this frame */
-  float  Pn[],		/* time domain Parzen window              */
-  int    shift          /* used to handle transition frames       */
+  float  Sn_[],		/* time domain synthesised signal              */
+  MODEL *model,		/* ptr to model parameters for this frame      */
+  float  Pn[],		/* time domain Parzen window                   */
+  int    shift          /* flag used to handle transition frames       */
 )
 {
     int   i,l,j,b;	/* loop variables */
@@ -499,10 +574,28 @@ void synthesise(
 	Sw_[i].imag = 0.0;
     }
 
-    /* Now set up frequency domain synthesised speech */
+    /*
+      Nov 2010 - found that synthesis using time domain cos() functions
+      gives better results for synthesis frames greater than 10ms.  Inverse
+      FFT synthesis using a 512 pt FFT works well for 10ms window.  I think
+      (but am not sure) that the problem is realted to the quantisation of
+      the harmonic frequencies to the FFT bin size, e.g. there is a 
+      8000/512 Hz step between FFT bins.  For some reason this makes
+      the speech from longer frame > 10ms sound poor.  The effect can also
+      be seen when synthesising test signals like single sine waves, some
+      sort of amplitude modulation at the frame rate.
 
+      Another possibility is using a larger FFT size (1024 or 2048).
+    */
+
+#define FFT_SYNTHESIS
+#ifdef FFT_SYNTHESIS
+    /* Now set up frequency domain synthesised speech */
     for(l=1; l<=model->L; l++) {
 	b = floor(l*model->Wo*FFT_DEC/TWO_PI + 0.5);
+	if (b > ((FFT_DEC/2)-1)) {
+		b = (FFT_DEC/2)-1;
+	}
 	Sw_[b].real = model->A[l]*cos(model->phi[l]);
 	Sw_[b].imag = model->A[l]*sin(model->phi[l]);
 	Sw_[FFT_DEC-b].real = Sw_[b].real;
@@ -511,7 +604,23 @@ void synthesise(
 
     /* Perform inverse DFT */
 
-    four1(&Sw_[-1].imag,FFT_DEC,1);
+    fft(&Sw_[0].real,FFT_DEC,1);
+#else
+    /*
+       Direct time domain synthesis using the cos() function.  Works
+       well at 10ms and 20ms frames rates.  Note synthesis window is
+       still used to handle overlap-add between adjacent frames.  This
+       could be simplified as we don't need to synthesise where Pn[]
+       is zero.
+    */
+    for(l=1; l<=model->L; l++) {
+	for(i=0,j=-N+1; i<N-1; i++,j++) {
+	    Sw_[FFT_DEC-N+1+i].real += 2.0*model->A[l]*cos(j*model->Wo*l + model->phi[l]);
+	}
+ 	for(i=N-1,j=0; i<2*N; i++,j++)
+	    Sw_[j].real += 2.0*model->A[l]*cos(j*model->Wo*l + model->phi[l]);
+    }	
+#endif
 
     /* Overlap add to previous samples */
 

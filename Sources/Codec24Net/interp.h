@@ -29,5 +29,9 @@
 #define __INTERP__
 
 void interpolate(MODEL *interp, MODEL *prev, MODEL *next);
+void interpolate_lsp(MODEL *interp, MODEL *prev, MODEL *next, 
+		     float *prev_lsps, float  prev_e,
+		     float *next_lsps, float  next_e,
+		     float *ak_interp);
 
 #endif

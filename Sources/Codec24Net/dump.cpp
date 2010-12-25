@@ -24,6 +24,7 @@
 */
 
 #include "defines.h"
+#include "comp.h"
 #include "dump.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -36,6 +37,7 @@ static int dumpon = 0;
 
 static FILE *fsn = NULL;
 static FILE *fsw = NULL;
+static FILE *few = NULL;
 static FILE *fsw_ = NULL;
 static FILE *fmodel = NULL;
 static FILE *fqmodel = NULL;
@@ -51,6 +53,7 @@ static FILE *fsnr = NULL;
 static FILE *fak = NULL;
 static FILE *fbg = NULL;
 static FILE *fE = NULL;
+static FILE *frk = NULL;
 
 static char  prefix[MAX_STR];
 
@@ -66,6 +69,8 @@ void dump_off(){
 	fclose(fsw);
     if (fsw_ != NULL)
 	fclose(fsw_);
+    if (few != NULL)
+	fclose(few);
     if (fmodel != NULL)
 	fclose(fmodel);
     if (fqmodel != NULL)
@@ -94,6 +99,8 @@ void dump_off(){
 	fclose(fbg);
     if (fE != NULL)
 	fclose(fE);
+    if (frk != NULL)
+	fclose(frk);
 }
 
 void dump_Sn(float Sn[]) {
@@ -153,6 +160,24 @@ void dump_Sw_(COMP Sw_[]) {
 	fprintf(fsw_,"%f\t",
 		10.0*log10(Sw_[i].real*Sw_[i].real + Sw_[i].imag*Sw_[i].imag));
     fprintf(fsw_,"\n");    
+}
+
+void dump_Ew(COMP Ew[]) {
+    int i;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (few == NULL) {
+	sprintf(s,"%s_ew.txt", prefix);
+	few = fopen(s, "wt");
+	assert(few != NULL);
+    }
+
+    for(i=0; i<FFT_ENC/2; i++)
+	fprintf(few,"%f\t",
+		10.0*log10(Ew[i].real*Ew[i].real + Ew[i].imag*Ew[i].imag));
+    fprintf(few,"\n");    
 }
 
 void dump_model(MODEL *model) {
@@ -400,4 +425,22 @@ void dump_E(float E) {
 
     fprintf(fE,"%f\n", 10.0*log10(E));
 }
+
+void dump_Rk(float Rk[]) {
+    int i;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (frk == NULL) {
+	sprintf(s,"%s_rk.txt", prefix);
+	frk = fopen(s, "wt");
+	assert(frk != NULL);
+    }
+
+    for(i=0; i<P_MAX; i++)
+	fprintf(frk,"%f\t",Rk[i]);
+    fprintf(frk,"\n");    
+}
+
 #endif

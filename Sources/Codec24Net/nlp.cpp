@@ -28,7 +28,7 @@
 #include "defines.h"
 #include "nlp.h"
 #include "dump.h"
-#include "four1.h"
+#include "fft.h"
 
 #include <assert.h>
 #include <math.h>
@@ -251,7 +251,7 @@ float nlp(
 #ifdef DUMP
     dump_dec(Fw);
 #endif
-    four1(&Fw[-1].imag,PE_FFT_SIZE,1);
+    fft(&Fw[0].real,PE_FFT_SIZE,1);
     for(i=0; i<PE_FFT_SIZE; i++)
 	Fw[i].real = Fw[i].real*Fw[i].real + Fw[i].imag*Fw[i].imag;
 

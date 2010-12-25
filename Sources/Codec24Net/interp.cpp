@@ -31,6 +31,8 @@
 
 #include "defines.h"
 #include "interp.h"
+#include "lsp.h"
+#include "quantise.h"
 
 float sample_log_amp(MODEL *model, float w);
 
@@ -47,6 +49,12 @@ float sample_log_amp(MODEL *model, float w);
 
   This version can interpolate the amplitudes between two frames of
   different Wo and L.
+
+  This version works by log linear interpolation, but listening tests
+  showed it creates problems in background noise, e.g. hts2a and mmt1.
+  When this function is used (--dec mode) bg noise appears to be
+  amplitude modulated, and gets louder.  The interp_lsp() function
+  below seems to do a better job.
   
 \*---------------------------------------------------------------------------*/
 
@@ -120,3 +128,64 @@ float sample_log_amp(MODEL *model, float w)
     return log_amp;
 }
 
+/*---------------------------------------------------------------------------*\
+
+  FUNCTION....: interp_lsp()	     
+  AUTHOR......: David Rowe			      
+  DATE CREATED: 10 Nov 2010
+        
+  Given two frames decribed by model parameters 20ms apart, determines
+  the model parameters of the 10ms frame between them.  Assumes
+  voicing is available for middle (interpolated) frame.  Outputs are
+  amplitudes and Wo for the interpolated frame.
+
+  This version uses interpolation of LSPs, seems to do a better job
+  with bg noise.
+  
+\*---------------------------------------------------------------------------*/
+
+void interpolate_lsp(
+  MODEL *interp,    /* interpolated model params                     */
+  MODEL *prev,      /* previous frames model params                  */
+  MODEL *next,      /* next frames model params                      */
+  float *prev_lsps, /* previous frames LSPs                          */
+  float  prev_e,    /* previous frames LPC energy                    */
+  float *next_lsps, /* next frames LSPs                              */
+  float  next_e,    /* next frames LPC energy                        */
+  float *ak_interp  /* interpolated aks for this frame                */
+		     )
+{
+    int   l,i;
+    float lsps[LPC_ORD],e;
+    float snr;
+
+    /* Wo depends on voicing of this and adjacent frames */
+
+    if (interp->voiced) {
+	if (prev->voiced && next->voiced)
+	    interp->Wo = (prev->Wo + next->Wo)/2.0;
+	if (!prev->voiced && next->voiced)
+	    interp->Wo = next->Wo;
+	if (prev->voiced && !next->voiced)
+	    interp->Wo = prev->Wo;
+    }
+    else {
+	interp->Wo = TWO_PI/P_MAX;
+    }
+    interp->L = PI/interp->Wo;
+
+    /* interpolate LSPs */
+
+    for(i=0; i<LPC_ORD; i++) {
+	lsps[i] = (prev_lsps[i] + next_lsps[i])/2.0;
+    }
+
+    /* Interpolate LPC energy in log domain */
+
+    e = pow(10.0, (log10(prev_e) + log10(next_e))/2.0);
+
+    /* convert back to amplitudes */
+
+    lsp_to_lpc(lsps, ak_interp, LPC_ORD);
+    aks_to_M2(ak_interp, LPC_ORD, interp, e, &snr, 0); 
+}

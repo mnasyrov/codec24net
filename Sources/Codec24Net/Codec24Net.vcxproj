@@ -41,9 +41,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)Bin\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)Bin\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -59,7 +61,9 @@
       </AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>$(OutputPath)GenerateCodebook.exe $(ProjectDir)codebook\lsp1.txt $(ProjectDir)codebook\lsp2.txt $(ProjectDir)codebook\lsp3.txt $(ProjectDir)codebook\lsp4.txt $(ProjectDir)codebook\lsp5.txt $(ProjectDir)codebook\lsp6.txt $(ProjectDir)codebook\lsp7.txt $(ProjectDir)codebook\lsp8.txt $(ProjectDir)codebook\lsp9.txt $(ProjectDir)codebook\lsp10.txt &gt; $(ProjectDir)codebook.cpp</Command>
+      <Command>$(ProjectDir)codebook\make.bat
+
+</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -67,7 +71,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-	  <ForcedIncludeFiles>$(ProjectDir)defines.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>$(ProjectDir)defines.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -75,7 +79,7 @@
       </AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>$(OutputPath)GenerateCodebook.exe $(ProjectDir)codebook\lsp1.txt $(ProjectDir)codebook\lsp2.txt $(ProjectDir)codebook\lsp3.txt $(ProjectDir)codebook\lsp4.txt $(ProjectDir)codebook\lsp5.txt $(ProjectDir)codebook\lsp6.txt $(ProjectDir)codebook\lsp7.txt $(ProjectDir)codebook\lsp8.txt $(ProjectDir)codebook\lsp9.txt $(ProjectDir)codebook\lsp10.txt &gt; $(ProjectDir)codebook.cpp</Command>
+      <Command>$(ProjectDir)codebook\make.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -88,9 +92,11 @@
     <ClInclude Include="comp.h" />
     <ClInclude Include="defines.h" />
     <ClInclude Include="dump.h" />
+    <ClInclude Include="fft.h" />
     <ClInclude Include="four1.h" />
     <ClInclude Include="globals.h" />
     <ClInclude Include="interp.h" />
+    <ClInclude Include="kiss_fft.h" />
     <ClInclude Include="lpc.h" />
     <ClInclude Include="lsp.h" />
     <ClInclude Include="nlp.h" />
@@ -100,16 +106,22 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="sine.h" />
     <ClInclude Include="Stdafx.h" />
+    <ClInclude Include="_kiss_fft_guts.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="codebook.cpp" />
+    <ClCompile Include="codebookd.cpp" />
+    <ClCompile Include="codebookdvq.cpp" />
     <ClCompile Include="codec2.cpp" />
     <ClCompile Include="Codec24Net.cpp" />
     <ClCompile Include="dump.cpp" />
+    <ClCompile Include="fft.cpp" />
     <ClCompile Include="four1.cpp" />
     <ClCompile Include="globals.cpp" />
+    <ClCompile Include="glottal.cpp" />
     <ClCompile Include="interp.cpp" />
+    <ClCompile Include="kiss_fft.cpp" />
     <ClCompile Include="lpc.cpp" />
     <ClCompile Include="lsp.cpp" />
     <ClCompile Include="nlp.cpp" />

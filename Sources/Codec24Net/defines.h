@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*\
 
   FILE........: defines.h                                                     
-  AUTHOR......: David Rowe                                                          
+  AUTHOR......: David Rowe 
   DATE CREATED: 23/4/93                                                       
                                                                              
   Defines and structures used throughout the codec.			     
@@ -47,7 +47,7 @@
 #define FFT_ENC    512		/* size of FFT used for encoder         */
 #define FFT_DEC    512	    	/* size of FFT used in decoder          */
 #define TW         40		/* Trapezoidal synthesis window overlap */
-#define V_THRESH   4.0          /* voicing threshold in dB              */
+#define V_THRESH   6.0          /* voicing threshold in dB              */
 #define LPC_MAX    20		/* maximum LPC order                    */
 #define LPC_ORD    10		/* phase modelling LPC order            */
 
@@ -62,13 +62,6 @@
 				TYPEDEFS                                      
                                                                              
 \*---------------------------------------------------------------------------*/
-
-/* Complex number */
-
-typedef struct {
-  float real;
-  float imag;
-} COMP;
 
 /* Structure to hold model parameters for one frame */
 
@@ -89,5 +82,7 @@ struct lsp_codebook {
     const float	*	cb;	  /* The elements		*/
 };
 extern const struct lsp_codebook lsp_cb[];
+extern const struct lsp_codebook lsp_cbd[];
+extern const struct lsp_codebook lsp_cbdvq[];
 
 #endif

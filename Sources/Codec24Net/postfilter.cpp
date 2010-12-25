@@ -32,6 +32,7 @@
 #include <math.h>
 
 #include "defines.h"
+#include "comp.h"
 #include "dump.h"
 #include "postfilter.h"
 

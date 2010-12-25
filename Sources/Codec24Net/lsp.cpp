@@ -257,11 +257,11 @@ int lpc_to_lsp (float *a, int lpcrdr, float *freq, int nb, float delta)
   DATE CREATED: 24/2/93
 
   This function converts LSP coefficients to LPC coefficients.  In the
-  Speex code we worked out a wayto simplify this significantly.
+  Speex code we worked out a way to simplify this significantly.
 
 \*---------------------------------------------------------------------------*/
 
-void lsp_to_lpc(float *freq, float *ak, int lpcrdr)
+void lsp_to_lpc(float *lsp, float *ak, int lpcrdr)
 /*  float *freq         array of LSP frequencies in radians     	*/
 /*  float *ak 		array of LPC coefficients 			*/
 /*  int lpcrdr  	order of LPC coefficients 			*/
@@ -272,12 +272,13 @@ void lsp_to_lpc(float *freq, float *ak, int lpcrdr)
     float xout1,xout2,xin1,xin2;
     float *pw,*n1,*n2,*n3,*n4 = 0;
     int m = lpcrdr/2;
+    float freq[LSP_MAX_ORDER];
     float Wp[(LSP_MAX_ORDER * 4) + 2];
-
+    
     /* convert from radians to the x=cos(w) domain */
 
     for(i=0; i<lpcrdr; i++)
-	freq[i] = cos(freq[i]);
+	freq[i] = cos(lsp[i]);
 
     pw = Wp;
 

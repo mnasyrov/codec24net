@@ -44,16 +44,19 @@
 #include "codec2.h"
 
 typedef struct {
-    float  Sn[M];        /* input speech                              */
-    float  w[M];	 /* time domain hamming window                */
-    COMP   W[FFT_ENC];	 /* DFT of w[]                                */
-    float  Pn[2*N];	 /* trapezoidal synthesis window              */
-    float  Sn_[2*N];	 /* synthesised speech                        */
-    float  prev_Wo;      /* previous frame's pitch estimate           */
-    float  ex_phase;     /* excitation model phase track              */
-    float  bg_est;       /* background noise estimate for post filter */
-    MODEL  prev_model;   /* model parameters from 20ms ago            */
-    void  *nlp;          /* pitch predictor states                    */
+    float  w[M];	       /* time domain hamming window                */
+    COMP   W[FFT_ENC];	       /* DFT of w[]                                */
+    float  Pn[2*N];	       /* trapezoidal synthesis window              */
+    float  Sn[M];              /* input speech                              */
+    float  hpf_states[2];      /* high pass filter states                   */
+    void  *nlp;                /* pitch predictor states                    */
+    float  Sn_[2*N];	       /* synthesised output speech                 */
+    float  ex_phase;           /* excitation model phase track              */
+    float  bg_est;             /* background noise estimate for post filter */
+    float  prev_Wo;            /* previous frame's pitch estimate           */
+    MODEL  prev_model;         /* previous frame's model parameters         */
+    float  prev_lsps[LPC_ORD]; /* previous frame's LSPs                     */
+    float  prev_energy;        /* previous frame's LPC energy               */
 } CODEC2;
 
 /*---------------------------------------------------------------------------*\
@@ -96,6 +99,7 @@ void *codec2_create()
 
     for(i=0; i<M; i++)
 	c2->Sn[i] = 1.0;
+    c2->hpf_states[0] = c2->hpf_states[1] = 0.0;
     for(i=0; i<2*N; i++)
 	c2->Sn_[i] = 0;
     make_analysis_window(c2->w,c2->W);
@@ -110,6 +114,11 @@ void *codec2_create()
     c2->prev_model.Wo = TWO_PI/P_MAX;
     c2->prev_model.L = PI/c2->prev_model.Wo;
     c2->prev_model.voiced = 0;
+
+    for(i=0; i<LPC_ORD; i++) {
+      c2->prev_lsps[i] = i*PI/(LPC_ORD+1);
+    }
+    c2->prev_energy = 1;
 
     c2->nlp = nlp_create();
     if (c2->nlp == NULL) {
@@ -172,7 +181,6 @@ void codec2_encode(void *codec2_state, unsigned char * bits, short speech[])
     MODEL   model;
     int     voiced1, voiced2;
     int     lsp_indexes[LPC_ORD];
-    int     lpc_correction;
     int     energy_index;
     int     Wo_index;
     int     i;
@@ -193,7 +201,6 @@ void codec2_encode(void *codec2_state, unsigned char * bits, short speech[])
     
     Wo_index = encode_Wo(model.Wo);
     encode_amplitudes(lsp_indexes, 
-		      &lpc_correction, 
 		      &energy_index,
 		      &model, 
 		       c2->Sn, 
@@ -203,7 +210,6 @@ void codec2_encode(void *codec2_state, unsigned char * bits, short speech[])
     for(i=0; i<LPC_ORD; i++) {
 	pack(bits, &nbit, lsp_indexes[i], lsp_bits(i));
     }
-    pack(bits, &nbit, lpc_correction, 1);
     pack(bits, &nbit, energy_index, E_BITS);
     pack(bits, &nbit, voiced1, 1);
     pack(bits, &nbit, voiced2, 1);
@@ -228,10 +234,12 @@ void codec2_decode(void *codec2_state, short speech[],
     MODEL   model;
     int     voiced1, voiced2;
     int     lsp_indexes[LPC_ORD];
-    int     lpc_correction;
+    float   lsps[LPC_ORD];
     int     energy_index;
+    float   energy;
     int     Wo_index;
     float   ak[LPC_ORD+1];
+    float   ak_interp[LPC_ORD+1];
     int     i;
     unsigned int nbit = 0;
     MODEL   model_interp;
@@ -239,15 +247,18 @@ void codec2_decode(void *codec2_state, short speech[],
     assert(codec2_state != NULL);
     c2 = (CODEC2*)codec2_state;
 
+    /* unpack bit stream to integer codes */
+
     Wo_index = unpack(bits, &nbit, WO_BITS);
     for(i=0; i<LPC_ORD; i++) {
 	lsp_indexes[i] = unpack(bits, &nbit, lsp_bits(i));
     }
-    lpc_correction = unpack(bits, &nbit, 1);
     energy_index = unpack(bits, &nbit, E_BITS);
     voiced1 = unpack(bits, &nbit, 1);
     voiced2 = unpack(bits, &nbit, 1);
     assert(nbit == CODEC2_BITS_PER_FRAME);
+
+    /* decode integer codes to model parameters */
 
     model.Wo = decode_Wo(Wo_index);
     model.L = PI/model.Wo;
@@ -255,19 +266,31 @@ void codec2_decode(void *codec2_state, short speech[],
     decode_amplitudes(&model, 
 		      ak,
 		      lsp_indexes,
-		      lpc_correction, 
-		      energy_index);
+		      energy_index,
+		      lsps,
+		      &energy);
 
     model.voiced = voiced2;
     model_interp.voiced = voiced1;
     model_interp.Wo = P_MAX/2;
     memset(&model_interp.A, 0, MAX_AMP*sizeof(model_interp.A[0]));
-    interpolate(&model_interp, &c2->prev_model, &model);
 
-    synthesise_one_frame(c2,  speech,     &model_interp, ak);
-    synthesise_one_frame(c2, &speech[N],  &model, ak);
+    /* interpolate middle frame's model parameters for adjacent frames */
+
+    interpolate_lsp(&model_interp, &c2->prev_model, &model,
+    		    c2->prev_lsps, c2->prev_energy, lsps, energy, ak_interp);
+    apply_lpc_correction(&model_interp);
+
+    /* synthesis two 10ms frames */
+
+    synthesise_one_frame(c2, speech, &model_interp, ak_interp);
+    synthesise_one_frame(c2, &speech[N], &model, ak);
+
+    /* update memories (decode states) for next time */
 
     memcpy(&c2->prev_model, &model, sizeof(MODEL));
+    memcpy(c2->prev_lsps, lsps, sizeof(lsps));
+    c2->prev_energy = energy;
 }
 
 /*---------------------------------------------------------------------------*\
@@ -284,7 +307,7 @@ void synthesise_one_frame(CODEC2 *c2, short speech[], MODEL *model, float ak[])
 {
     int     i;
 
-    phase_synth_zero_order(model, ak, &c2->ex_phase);
+    phase_synth_zero_order(model, ak, &c2->ex_phase, LPC_ORD);
     postfilter(model, &c2->bg_est);
     synthesise(c2->Sn_, model, c2->Pn, 1);
 
@@ -314,6 +337,7 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
 {
     COMP    Sw[FFT_ENC];
     COMP    Sw_[FFT_ENC];
+    COMP    Ew[FFT_ENC];
     float   pitch;
     int     i;
 
@@ -323,19 +347,20 @@ void analyse_one_frame(CODEC2 *c2, MODEL *model, short speech[])
       c2->Sn[i] = c2->Sn[i+N];
     for(i=0; i<N; i++)
       c2->Sn[i+M-N] = speech[i];
+
     dft_speech(Sw, c2->Sn, c2->w);
 
     /* Estimate pitch */
 
     nlp(c2->nlp,c2->Sn,N,M,P_MIN,P_MAX,&pitch,Sw,&c2->prev_Wo);
-    c2->prev_Wo = TWO_PI/pitch;
     model->Wo = TWO_PI/pitch;
     model->L = PI/model->Wo;
 
     /* estimate model parameters */
 
-    dft_speech(Sw, c2->Sn, c2->w); 
     two_stage_pitch_refinement(model, Sw);
     estimate_amplitudes(model, Sw, c2->W);
-    est_voicing_mbe(model, Sw, c2->W, (FS/TWO_PI)*model->Wo, Sw_);
+    est_voicing_mbe(model, Sw, c2->W, Sw_, Ew, c2->prev_Wo);
+
+    c2->prev_Wo = model->Wo;
 }

@@ -36,7 +36,7 @@
 #include "quantise.h"
 #include "lpc.h"
 #include "lsp.h"
-#include "four1.h"
+#include "fft.h"
 
 #define LSP_DELTA1 0.01         /* grid spacing for LSP root searches */
 
@@ -89,37 +89,6 @@ void quantise_uniform(float *val, float min, float max, int bits)
     printf("index %d  val_: %f\n", index, val[0]);
 }
 
-/*---------------------------------------------------------------------------*\
-									      
-  lspd_quantise
-
-  Simulates differential lsp quantiser
-
-\*---------------------------------------------------------------------------*/
-
-void lsp_quantise(
-  float lsp[], 
-  float lsp_[],
-  int   order
-) 
-{
-    int   i;
-    float dlsp[LPC_MAX];
-    float dlsp_[LPC_MAX];
-
-    dlsp[0] = lsp[0];
-    for(i=1; i<order; i++)
-	dlsp[i] = lsp[i] - lsp[i-1];
-
-    for(i=0; i<order; i++)
-	dlsp_[i] = dlsp[i];
-
-    quantise_uniform(&dlsp_[0], 0.1, 0.5, 5);
-
-    lsp_[0] = dlsp_[0];
-    for(i=1; i<order; i++)
-	lsp_[i] = lsp_[i-1] + dlsp_[i];
-}
 #endif
 
 /*---------------------------------------------------------------------------*\
@@ -174,6 +143,166 @@ long quantise(const float * cb, float vec[], float w[], int k, int m, float *se)
    *se += beste;
 
    return(besti);
+}
+
+/*---------------------------------------------------------------------------*\
+									      
+  lspd_quantise
+
+  Scalar lsp difference quantiser.
+
+\*---------------------------------------------------------------------------*/
+
+void lspd_quantise(
+  float lsp[], 
+  float lsp_[],
+  int   order
+) 
+{
+    int   i,k,m;
+    float lsp_hz[LPC_MAX];
+    float lsp__hz[LPC_MAX];
+    float dlsp[LPC_MAX];
+    float dlsp_[LPC_MAX];
+    float  wt[1];
+    const float *cb;
+    float se;
+    int   indexes[LPC_MAX];
+
+    /* convert from radians to Hz so we can use human readable
+       frequencies */
+
+    for(i=0; i<order; i++)
+	lsp_hz[i] = (4000.0/PI)*lsp[i];
+
+    dlsp[0] = lsp_hz[0];
+    for(i=1; i<order; i++)
+    	dlsp[i] = lsp_hz[i] - lsp_hz[i-1];
+
+    /* simple uniform scalar quantisers */
+
+    wt[0] = 1.0;
+    for(i=0; i<order; i++) {
+	if (i) 
+	    dlsp[i] = lsp_hz[i] - lsp__hz[i-1];	    
+	else
+	    dlsp[0] = lsp_hz[0];
+
+	k = lsp_cbd[i].k;
+	m = lsp_cbd[i].m;
+	cb = lsp_cbd[i].cb;
+	indexes[i] = quantise(cb, &dlsp[i], wt, k, m, &se);
+ 	dlsp_[i] = cb[indexes[i]*k];
+
+	if (i) 
+	    lsp__hz[i] = lsp__hz[i-1] + dlsp_[i];
+	else
+	    lsp__hz[0] = dlsp_[0];
+    }
+    for(; i<order; i++)
+    	lsp__hz[i] = lsp__hz[i-1] + dlsp[i];
+    
+    /* convert back to radians */
+
+    for(i=0; i<order; i++)
+	lsp_[i] = (PI/4000.0)*lsp__hz[i];
+}
+
+/*---------------------------------------------------------------------------*\
+									      
+  lspd_vq_quantise
+
+  Vector lsp difference quantiser.
+
+\*---------------------------------------------------------------------------*/
+
+void lspdvq_quantise(
+  float lsp[], 
+  float lsp_[],
+  int   order
+) 
+{
+    int   i,k,m,ncb, nlsp;
+    float dlsp[LPC_MAX];
+    float dlsp_[LPC_MAX];
+    float  wt[LPC_ORD];
+    const float *cb;
+    float se;
+    int   index;
+
+    dlsp[0] = lsp[0];
+    for(i=1; i<order; i++)
+    	dlsp[i] = lsp[i] - lsp[i-1];
+
+    for(i=0; i<order; i++)
+    	dlsp_[i] = dlsp[i];
+
+    for(i=0; i<order; i++)
+	wt[i] = 1.0;
+
+    /* scalar quantise dLSPs 1,2,3,4,5 */
+
+    for(i=0; i<5; i++) {
+	if (i) 
+	    dlsp[i] = (lsp[i] - lsp_[i-1])*4000.0/PI;	    
+	else
+	    dlsp[0] = lsp[0]*4000.0/PI;
+
+	k = lsp_cbdvq[i].k;
+	m = lsp_cbdvq[i].m;
+	cb = lsp_cbdvq[i].cb;
+	index = quantise(cb, &dlsp[i], wt, k, m, &se);
+ 	dlsp_[i] = cb[index*k]*PI/4000.0;
+	
+	if (i) 
+	    lsp_[i] = lsp_[i-1] + dlsp_[i];
+	else
+	    lsp_[0] = dlsp_[0];
+    }
+    dlsp[i] = lsp[i] - lsp_[i-1];
+    dlsp_[i] = dlsp[i];
+
+    //printf("lsp[0] %f lsp_[0] %f\n", lsp[0], lsp_[0]);
+    //printf("lsp[1] %f lsp_[1] %f\n", lsp[1], lsp_[1]);
+
+#ifdef TT
+    /* VQ dLSPs 3,4,5 */
+
+    ncb = 2;
+    nlsp = 2;
+    k = lsp_cbdvq[ncb].k;
+    m = lsp_cbdvq[ncb].m;
+    cb = lsp_cbdvq[ncb].cb;
+    index = quantise(cb, &dlsp[nlsp], wt, k, m, &se);
+    dlsp_[nlsp] = cb[index*k];
+    dlsp_[nlsp+1] = cb[index*k+1];
+    dlsp_[nlsp+2] = cb[index*k+2];
+
+    lsp_[0] = dlsp_[0];
+    for(i=1; i<5; i++)
+    	lsp_[i] = lsp_[i-1] + dlsp_[i];
+    dlsp[i] = lsp[i] - lsp_[i-1];
+    dlsp_[i] = dlsp[i];
+#endif
+    /* VQ dLSPs 6,7,8,9,10 */
+
+    ncb = 5;
+    nlsp = 5;
+    k = lsp_cbdvq[ncb].k;
+    m = lsp_cbdvq[ncb].m;
+    cb = lsp_cbdvq[ncb].cb;
+    index = quantise(cb, &dlsp[nlsp], wt, k, m, &se);
+    dlsp_[nlsp] = cb[index*k];
+    dlsp_[nlsp+1] = cb[index*k+1];
+    dlsp_[nlsp+2] = cb[index*k+2];
+    dlsp_[nlsp+3] = cb[index*k+3];
+    dlsp_[nlsp+4] = cb[index*k+4];
+
+    /* rebuild LSPs for dLSPs */
+
+    lsp_[0] = dlsp_[0];
+    for(i=1; i<order; i++)
+    	lsp_[i] = lsp_[i-1] + dlsp_[i];
 }
 
 void check_lsp_order(float lsp[], int lpc_order)
@@ -363,7 +492,7 @@ void aks_to_M2(
 
   for(i=0; i<=order; i++)
     Pw[i].real = ak[i];
-  four1(&Pw[-1].imag,FFT_DEC,1);
+  fft(&Pw[0].real,FFT_DEC,1);
 
   /* Determine power spectrum P(w) = E/(A(exp(jw))^2 ------------------------*/
 
@@ -596,67 +725,19 @@ void bw_expand_lsps(float lsp[],
 
 /*---------------------------------------------------------------------------*\
                                                        
-  FUNCTION....: need_lpc_correction()	     
-  AUTHOR......: David Rowe			      
-  DATE CREATED: 22/8/2010 
-
-  Determine if we need LPC correction of first harmonic.
-
-\*---------------------------------------------------------------------------*/
-
-int need_lpc_correction(MODEL *model, float ak[], float E)
-{
-    MODEL  tmp;
-    float  snr,E1;
-
-    /* Find amplitudes so we can check if we need LPC correction.
-       TODO: replace call to aks_to_M2() by a single DFT calculation
-       of E/A(exp(jWo)) to make much more efficient.  We only need
-       A[1].
-    */
-
-    memcpy(&tmp, model, sizeof(MODEL));
-    aks_to_M2(ak, LPC_ORD, &tmp, E, &snr, 0);   
-
-    /* 
-       Attenuate fundamental by 30dB if F0 < 150 Hz and LPC modelling
-       error for A[1] is larger than 6dB.
-
-       LPC modelling often makes big errors on 1st harmonic, for example
-       when the fundamental has been removed by analog high pass
-       filtering before sampling.  However on unfiltered speech from
-       high quality sources we would like to keep the fundamental to
-       maintain the speech quality.  So we check the error in A[1] and
-       attenuate it if the error is large to avoid annoying low
-       frequency energy after LPC modelling.
-
-       This requires a single bit to quantise, on top of the other
-       spectral magnitude bits (i.e. LSP bits + 1 total).
-    */
-
-    E1 = fabs(20.0*log10(model->A[1]) - 20.0*log10(tmp.A[1]));
-    if (E1 > 6.0)
-	return 1;
-    else 
-	return 0;
-}
-
-/*---------------------------------------------------------------------------*\
-                                                       
   FUNCTION....: apply_lpc_correction()	     
   AUTHOR......: David Rowe			      
   DATE CREATED: 22/8/2010 
 
-  Apply first harmonic LPC correction at decoder.
+  Apply first harmonic LPC correction at decoder.  This helps improve
+  low pitch males after LPC modelling, like hts1a and morig.
 
 \*---------------------------------------------------------------------------*/
 
-void apply_lpc_correction(MODEL *model, int lpc_correction)
+void apply_lpc_correction(MODEL *model)
 {
-    if (lpc_correction) {
-	if (model->Wo < (PI*150.0/4000)) {
-	    model->A[1] *= 0.032;
-	}
+    if (model->Wo < (PI*150.0/4000)) {
+	model->A[1] *= 0.032;
     }
 }
 
@@ -724,7 +805,6 @@ float decode_energy(int index)
 \*---------------------------------------------------------------------------*/
 
 void encode_amplitudes(int    lsp_indexes[], 
-		       int   *lpc_correction,
 		       int   *energy_index,
 		       MODEL *model, 
 		       float  Sn[], 
@@ -736,7 +816,6 @@ void encode_amplitudes(int    lsp_indexes[],
 
     e = speech_to_uq_lsps(lsps, ak, Sn, w, LPC_ORD);
     encode_lsps(lsp_indexes, lsps, LPC_ORD);
-    *lpc_correction = need_lpc_correction(model, ak, e);
     *energy_index = encode_energy(e);
 }
 
@@ -754,20 +833,19 @@ void encode_amplitudes(int    lsp_indexes[],
 float decode_amplitudes(MODEL *model, 
 			float  ak[],
 		        int    lsp_indexes[], 
-		        int    lpc_correction,
-		        int    energy_index
+		        int    energy_index,
+			float  lsps[],
+			float *e
 )
 {
-    float lsps[LPC_ORD];
-    float e;
     float snr;
 
     decode_lsps(lsps, lsp_indexes, LPC_ORD);
     bw_expand_lsps(lsps, LPC_ORD);
     lsp_to_lpc(lsps, ak, LPC_ORD);
-    e = decode_energy(energy_index);
-    aks_to_M2(ak, LPC_ORD, model, e, &snr, 1); 
-    apply_lpc_correction(model, lpc_correction);
+    *e = decode_energy(energy_index);
+    aks_to_M2(ak, LPC_ORD, model, *e, &snr, 1); 
+    apply_lpc_correction(model);
 
     return snr;
 }

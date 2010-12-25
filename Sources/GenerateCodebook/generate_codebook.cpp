@@ -29,7 +29,7 @@
 #include <math.h>
 
 static const char usage[] =
-"Usage: %s filename [filename ...]\n"
+"Usage: %s filename array_name [filename ...]\n"
 "\tCreate C code for codebook tables.\n";
 
 static const char format[] =
@@ -63,7 +63,10 @@ dump_array(const struct codebook * b, int index)
     printf("  %g", b->cb[i]);
     if ( i < limit - 1 )
       printf(",");
-    printf("\n");
+
+    /* organise VQs by rows, looks prettier */
+    if ( ((i+1) % b->k) == 0 )
+	printf("\n");
   }
   printf("};\n");
 }
@@ -145,27 +148,27 @@ main(int argc, char * * argv)
     exit(1);
   }
 
-  for ( i = 0; i < argc - 1; i++ ) {
-    FILE *	in = fopen(argv[i + 1], "r");
+  for ( i = 0; i < argc - 2; i++ ) {
+    FILE *	in = fopen(argv[i + 2], "r");
 
     if ( in == NULL ) {
-      perror(argv[i + 1]);
+      perror(argv[i + 2]);
       exit(1);
     }
 
-    cb[i] = load(in, argv[i + 1]);
+    cb[i] = load(in, argv[i + 2]);
 
     fclose(in);
   }
 
   printf(header);
-  for ( i = 0; i < argc - 1; i++ ) {
-    printf("  /* %s */\n", argv[i + 1]);
+  for ( i = 0; i < argc - 2; i++ ) {
+    printf("  /* %s */\n", argv[i + 2]);
     dump_array(cb[i], i);
   }
-  printf("\nconst struct lsp_codebook lsp_cb[] = {\n");
-  for ( i = 0; i < argc - 1; i++ ) {
-    printf("  /* %s */\n", argv[i + 1]);
+  printf("\nconst struct lsp_codebook %s[] = {\n", argv[1]);
+  for ( i = 0; i < argc - 2; i++ ) {
+    printf("  /* %s */\n", argv[i + 2]);
     dump_structure(cb[i], i);
     printf(",\n");
   }
