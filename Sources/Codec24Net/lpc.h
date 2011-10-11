@@ -32,6 +32,7 @@
 
 void hanning_window(float Sn[],	float Wn[], int Nsam);
 void autocorrelate(float Sn[], float Rn[], int Nsam, int order);
+void autocorrelate_freq(float Pw[], float w[], float  R[], int Nsam, int order);
 void levinson_durbin(float R[],	float lpcs[], int order);
 void inverse_filter(float Sn[], float a[], int Nsam, float res[], int order);
 void synthesis_filter(float res[], float a[], int Nsam,	int order, float Sn_[]);

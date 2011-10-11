@@ -221,42 +221,42 @@ void phase_synth_zero_order(
   r = TWO_PI/GLOTTAL_FFT_SIZE;
 
   for(m=1; m<=model->L; m++) {
+	  
+      /* generate excitation */
 
-    /* generate excitation */
+      if (model->voiced) {
+	  /* I think adding a little jitter helps improve low pitch
+	     males like hts1a. This moves the onset of each harmonic
+	     over at +/- 0.25 of a sample.
+	  */
+	  jitter = 0.25*(1.0 - 2.0*rand()/RAND_MAX);
+	  b = floor(m*model->Wo/r + 0.5);
+	  if (b > ((GLOTTAL_FFT_SIZE/2)-1)) {
+	      b = (GLOTTAL_FFT_SIZE/2)-1;
+	  }
+	  Ex[m].real = cos(ex_phase[0]*m - jitter*model->Wo*m + glottal[b]);
+	  Ex[m].imag = sin(ex_phase[0]*m - jitter*model->Wo*m + glottal[b]);
+      }
+      else {
 
-    if (model->voiced) {
-	/* I think adding a little jitter helps improve low pitch
-	   males like hts1a. This moves the onset of each harmonic
-	   over at +/- 0.25 of a sample.
-	*/
-        jitter = 0.25*(1.0 - 2.0*rand()/RAND_MAX);
-        b = floor(m*model->Wo/r + 0.5);
-	if (b > ((GLOTTAL_FFT_SIZE/2)-1)) {
-		b = (GLOTTAL_FFT_SIZE/2)-1;
-	}
-	Ex[m].real = cos(ex_phase[0]*m - jitter*model->Wo*m + glottal[b]);
-	Ex[m].imag = sin(ex_phase[0]*m - jitter*model->Wo*m + glottal[b]);
-    }
-    else {
+	  /* When a few samples were tested I found that LPC filter
+	     phase is not needed in the unvoiced case, but no harm in
+	     keeping it.
+	  */
+	  float phi = TWO_PI*(float)rand()/RAND_MAX;
+	  Ex[m].real = cos(phi);
+	  Ex[m].imag = sin(phi);
+      }
 
-	/* When a few samples were tested I found that LPC filter
-	   phase is not needed in the unvoiced case, but no harm in
-	   keeping it.
-        */
-	float phi = TWO_PI*(float)rand()/RAND_MAX;
-        Ex[m].real = cos(phi);
-	Ex[m].imag = sin(phi);
-    }
+      /* filter using LPC filter */
 
-    /* filter using LPC filter */
+      A_[m].real = H[m].real*Ex[m].real - H[m].imag*Ex[m].imag;
+      A_[m].imag = H[m].imag*Ex[m].real + H[m].real*Ex[m].imag;
 
-    A_[m].real = H[m].real*Ex[m].real - H[m].imag*Ex[m].imag;
-    A_[m].imag = H[m].imag*Ex[m].real + H[m].real*Ex[m].imag;
-
-    /* modify sinusoidal phase */
+      /* modify sinusoidal phase */
    
-    new_phi = atan2(A_[m].imag, A_[m].real + (float)1E-12);
-    model->phi[m] = new_phi;
+      new_phi = atan2(A_[m].imag, A_[m].real + (float)1E-12);
+      model->phi[m] = new_phi;
   }
 
 }

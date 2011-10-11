@@ -28,10 +28,14 @@
 #ifndef __INTERP__
 #define __INTERP__
 
+#define RES_POINTS 20
+
 void interpolate(MODEL *interp, MODEL *prev, MODEL *next);
 void interpolate_lsp(MODEL *interp, MODEL *prev, MODEL *next, 
 		     float *prev_lsps, float  prev_e,
 		     float *next_lsps, float  next_e,
 		     float *ak_interp);
+float resample_amp(MODEL *model, int m);
+float resample_amp_nl(MODEL *model, int m, float Ares_prev[]);
 
 #endif

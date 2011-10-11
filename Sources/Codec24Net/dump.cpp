@@ -54,6 +54,7 @@ static FILE *fak = NULL;
 static FILE *fbg = NULL;
 static FILE *fE = NULL;
 static FILE *frk = NULL;
+static FILE *fres = NULL;
 
 static char  prefix[MAX_STR];
 
@@ -101,6 +102,8 @@ void dump_off(){
 	fclose(fE);
     if (frk != NULL)
 	fclose(frk);
+    if (fres != NULL)
+	fclose(fres);
 }
 
 void dump_Sn(float Sn[]) {
@@ -219,6 +222,26 @@ void dump_quantised_model(MODEL *model) {
     for(l=model->L+1; l<MAX_AMP; l++)
 	fprintf(fqmodel,"0.0\t");
     fprintf(fqmodel,"\n");    
+}
+
+void dump_resample(float w[], float A[], int n) {
+    int l;
+    char s[MAX_STR];
+
+    if (!dumpon) return;
+
+    if (fres == NULL) {
+	sprintf(s,"%s_res.txt", prefix);
+	fres = fopen(s, "wt");
+	assert(fres != NULL);
+    }
+
+    fprintf(fres,"%d\t",n);
+    for(l=0; l<n; l++)
+	fprintf(fres,"%f\t",w[l]);
+    for(l=0; l<n; l++)
+	fprintf(fres,"%f\t",A[l]);
+    fprintf(fres,"\n");    
 }
 
 void dump_phase(float phase[], int L) {

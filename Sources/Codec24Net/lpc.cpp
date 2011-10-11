@@ -79,6 +79,33 @@ void autocorrelate(
 }
 
 /*---------------------------------------------------------------------------*\
+                                                                           
+  autocorrelate_freq()                                                          
+                                                                          
+  Finds the first P autocorrelation values from an array of frequency domain
+  power samples.                                                            
+                                                                          
+\*---------------------------------------------------------------------------*/
+
+void autocorrelate_freq(
+  float Pw[],	/* Nsam frequency domain power spectrum samples    */
+  float  w[],	/* frequency of each sample in Pw[]                */
+  float  R[],	/* array of order+1 autocorrelation coefficients   */
+  int Nsam,	/* number of windowed samples to use               */
+  int order	/* order of LPC analysis                           */
+)
+{
+  int i,j;	/* loop variables */
+
+  for(j=0; j<order+1; j++) {
+    R[j] = 0.0;
+    for(i=0; i<Nsam; i++)
+	R[j] += Pw[i]*cos(j*w[i]);
+  }
+  R[j] /= Nsam;
+}
+
+/*---------------------------------------------------------------------------*\
                                                                             
   levinson_durbin()                                                        
                                                                            
