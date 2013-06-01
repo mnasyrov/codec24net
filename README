@@ -1,0 +1,9 @@
+Codec24Net is a port of Codec2 codec to .NET framework.
+
+Codec2 is an open source low bit rate speech codec, that's developed by David Rowe. More details can be found here.
+
+Currently, the 0.1 aplha version has been ported to .NET 4.0 just to proof the concept. Here you can find next things in sources:
+
+a library with a codec;
+a tool to encode/decode pcm files (8Khz, mono, 16 bit);
+and a few encoded/decoded sound files.
