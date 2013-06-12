@@ -69,6 +69,7 @@
       <Project>{8C1B0445-DB81-45D7-9770-0FA58357717E}</Project>
       <Name>Codec24Net</Name>
       <Private>False</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -7,7 +7,7 @@
 
 #include "defines.h"
 
-  /* lsp1.txt */
+  /* codebook/lsp1.txt */
 static const float codes0[] = {
   225,
   250,
@@ -26,7 +26,7 @@ static const float codes0[] = {
   575,
   600
 };
-  /* lsp2.txt */
+  /* codebook/lsp2.txt */
 static const float codes1[] = {
   325,
   350,
@@ -45,7 +45,7 @@ static const float codes1[] = {
   675,
   700
 };
-  /* lsp3.txt */
+  /* codebook/lsp3.txt */
 static const float codes2[] = {
   500,
   550,
@@ -64,7 +64,7 @@ static const float codes2[] = {
   1200,
   1250
 };
-  /* lsp4.txt */
+  /* codebook/lsp4.txt */
 static const float codes3[] = {
   700,
   800,
@@ -83,7 +83,7 @@ static const float codes3[] = {
   2100,
   2200
 };
-  /* lsp5.txt */
+  /* codebook/lsp5.txt */
 static const float codes4[] = {
   950,
   1050,
@@ -102,7 +102,7 @@ static const float codes4[] = {
   2350,
   2450
 };
-  /* lsp6.txt */
+  /* codebook/lsp6.txt */
 static const float codes5[] = {
   1100,
   1200,
@@ -121,7 +121,7 @@ static const float codes5[] = {
   2500,
   2600
 };
-  /* lsp7.txt */
+  /* codebook/lsp7.txt */
 static const float codes6[] = {
   1500,
   1600,
@@ -140,7 +140,7 @@ static const float codes6[] = {
   2900,
   3000
 };
-  /* lsp8.txt */
+  /* codebook/lsp8.txt */
 static const float codes7[] = {
   2300,
   2400,
@@ -151,7 +151,7 @@ static const float codes7[] = {
   2900,
   3000
 };
-  /* lsp9.txt */
+  /* codebook/lsp9.txt */
 static const float codes8[] = {
   2500,
   2600,
@@ -162,7 +162,7 @@ static const float codes8[] = {
   3100,
   3200
 };
-  /* lsp10.txt */
+  /* codebook/lsp10.txt */
 static const float codes9[] = {
   2900,
   3100,
@@ -171,70 +171,70 @@ static const float codes9[] = {
 };
 
 const struct lsp_codebook lsp_cb[] = {
-  /* lsp1.txt */
+  /* codebook/lsp1.txt */
   {
     1,
     4,
     16,
     codes0
   },
-  /* lsp2.txt */
+  /* codebook/lsp2.txt */
   {
     1,
     4,
     16,
     codes1
   },
-  /* lsp3.txt */
+  /* codebook/lsp3.txt */
   {
     1,
     4,
     16,
     codes2
   },
-  /* lsp4.txt */
+  /* codebook/lsp4.txt */
   {
     1,
     4,
     16,
     codes3
   },
-  /* lsp5.txt */
+  /* codebook/lsp5.txt */
   {
     1,
     4,
     16,
     codes4
   },
-  /* lsp6.txt */
+  /* codebook/lsp6.txt */
   {
     1,
     4,
     16,
     codes5
   },
-  /* lsp7.txt */
+  /* codebook/lsp7.txt */
   {
     1,
     4,
     16,
     codes6
   },
-  /* lsp8.txt */
+  /* codebook/lsp8.txt */
   {
     1,
     3,
     8,
     codes7
   },
-  /* lsp9.txt */
+  /* codebook/lsp9.txt */
   {
     1,
     3,
     8,
     codes8
   },
-  /* lsp10.txt */
+  /* codebook/lsp10.txt */
   {
     1,
     2,

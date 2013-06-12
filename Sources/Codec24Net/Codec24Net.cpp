@@ -8,29 +8,54 @@ namespace Codec24Net {
 
 	public ref class Codec2
 	{
+	struct CODEC2 *codecState;
+	int nsam;
+	int nbit;
+
 	public:		
+		void create(int mode)
+		{
+			codecState = codec2_create(mode);
+			nsam = codec2_samples_per_frame(codecState);
+			nbit = codec2_bits_per_frame(codecState);
+		}
+		
+		int get_codec2_samples_per_frame(void)
+		{
+			return codec2_samples_per_frame(codecState);
+		}
+		
+		int get_codec2_bits_per_frame(void)
+		{
+			return codec2_bits_per_frame(codecState);
+		}
+
+		void destroy(void)
+		{
+			codec2_destroy(codecState);
+		}
 
 		void Encode(BinaryReader^ input, BinaryWriter^ output)
 		{
 			if (input == nullptr) throw gcnew ArgumentNullException(L"input");
 			if (output == nullptr) throw gcnew ArgumentNullException(L"output");
 
-			void* codecState = codec2_create();
+//			void* codecState = codec2_create();
 
-			array<unsigned char>^ pcmByteBuffer = gcnew array<unsigned char>(CODEC2_SAMPLES_PER_FRAME * 2);
-			short pcmSamples[CODEC2_SAMPLES_PER_FRAME];
+			array<unsigned char>^ pcmByteBuffer = gcnew array<unsigned char>(nsam * 2);
+			short pcmSamples[320];
 
-			static const int encodedSampleCount = ((CODEC2_BITS_PER_FRAME + 7) / 8);			
-			unsigned char encodedSamples[encodedSampleCount];
+			static const int encodedSampleCount = nbit/8;			
+			unsigned char encodedSamples[8];
 			array<unsigned char>^ encodedByteBuffer = gcnew array<unsigned char>(encodedSampleCount);
-
+			
 			int readBytes;
 			do
 			{
-				readBytes = input->Read(pcmByteBuffer, 0, CODEC2_SAMPLES_PER_FRAME * 2);
+				readBytes = input->Read(pcmByteBuffer, 0, nsam * 2);
 				if (readBytes > 0)
 				{
-					for (int i = 0; i < CODEC2_SAMPLES_PER_FRAME; i++)
+					for (int i = 0; i < nsam; i++)
 					{
 						if (i <= readBytes)
 						{
@@ -53,7 +78,7 @@ namespace Codec24Net {
 				}
 			} while (readBytes > 0);
 
-			codec2_destroy(codecState);
+	//		codec2_destroy(codecState);
 		}
 				
 		void Decode(BinaryReader^ input, BinaryWriter^ output)
@@ -61,12 +86,12 @@ namespace Codec24Net {
 			if (input == nullptr) throw gcnew ArgumentNullException(L"input");
 			if (output == nullptr) throw gcnew ArgumentNullException(L"output");
 
-			void* codecState = codec2_create();
+	//		void* codecState = codec2_create();
 
-			array<unsigned char>^ pcmByteBuffer = gcnew array<unsigned char>(CODEC2_SAMPLES_PER_FRAME * 2);
-			short pcmSamples[CODEC2_SAMPLES_PER_FRAME];
+			array<unsigned char>^ pcmByteBuffer = gcnew array<unsigned char>(320 * 2);
+			short pcmSamples[320];
 
-			static const int encodedSampleCount = ((CODEC2_BITS_PER_FRAME + 7) / 8);			
+			static const int encodedSampleCount = 8;			
 			unsigned char encodedSamples[encodedSampleCount];
 			array<unsigned char>^ encodedByteBuffer = gcnew array<unsigned char>(encodedSampleCount);
 
@@ -79,16 +104,16 @@ namespace Codec24Net {
 
 				codec2_decode(codecState, pcmSamples, encodedSamples);
 
-				for (int i = 0; i < CODEC2_SAMPLES_PER_FRAME; i++)
+				for (int i = 0; i < 320; i++)
 				{
 					pcmByteBuffer[i * 2 + 1] = pcmSamples[i] >> 8;
 					pcmByteBuffer[i * 2] = pcmSamples[i] & 0xFF; 
 				}
 
-				output->Write(pcmByteBuffer, 0, CODEC2_SAMPLES_PER_FRAME * 2);
+				output->Write(pcmByteBuffer, 0, 320 * 2);
 			}
 
-			codec2_destroy(codecState);
+	//		codec2_destroy(codecState);
 		}
 	};
 }

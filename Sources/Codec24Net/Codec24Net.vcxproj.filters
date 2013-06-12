@@ -92,9 +92,6 @@
     <ClCompile Include="four1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="globals.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="interp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -138,6 +135,27 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="kiss_fft.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="codebookvqanssi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="codebookdt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="codebookge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="codebookjnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="codebookjvm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="codebookres.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="codebookvq.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
